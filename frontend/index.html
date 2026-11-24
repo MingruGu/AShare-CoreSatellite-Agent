@@ -1,293 +1,524 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>AShare Quant App</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { background-color: #0b0f19; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    .card { background-color: #131a2a; border: 1px solid #1e293b; border-radius: 16px; }
-    .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
-    .btn-danger { background: linear-gradient(135deg, #dc2626, #b91c1c); }
-    .btn-success { background: linear-gradient(135deg, #059669, #047857); }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AShare Core-Satellite Quant Terminal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#06080d; --panel:rgba(16,21,33,.72); --panel-solid:#0d121c; --line:rgba(255,255,255,.07); --line-strong:rgba(255,255,255,.12);
+    --txt:#e6ebf4; --mute:#7b879c; --dim:#4a5468;
+    --up:#f6465d; --down:#0ecb81; --accent:#5b8cff; --amber:#f0b429;
+  }
+  *{box-sizing:border-box}
+  html,body{background:var(--bg)}
+  body{color:var(--txt);font-family:'Inter',-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;
+    background-image:radial-gradient(900px 420px at 10% -8%,rgba(91,140,255,.13),transparent 60%),radial-gradient(700px 360px at 95% 0%,rgba(246,70,93,.06),transparent 60%);
+    background-attachment:fixed;-webkit-font-smoothing:antialiased}
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .tile{background:var(--panel);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid var(--line);border-radius:16px;position:relative}
+  .tile::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.035),transparent 40%)}
+  .sub{background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:12px}
+  .t-title{font-size:13px;font-weight:600;letter-spacing:.01em;color:var(--txt)}
+  .t-desc{font-size:11px;color:var(--mute)}
+  .up{color:var(--up)} .down{color:var(--down)}
+  .bg-up{background:rgba(246,70,93,.12)} .bg-down{background:rgba(14,203,129,.12)}
+  .seg{display:inline-flex;padding:3px;border-radius:10px;background:rgba(0,0,0,.35);border:1px solid var(--line)}
+  .seg button{font-size:11px;font-weight:600;padding:5px 11px;border-radius:7px;color:var(--mute);transition:.15s;border:1px solid transparent}
+  .seg button:hover{color:#fff}
+  .seg button.active{background:rgba(91,140,255,.16);color:#8fb0ff;border-color:rgba(91,140,255,.4)}
+  .btn{font-size:12px;font-weight:600;border-radius:10px;padding:8px 14px;border:1px solid var(--line-strong);background:rgba(255,255,255,.04);color:var(--txt);transition:.15s}
+  .btn:hover{background:rgba(255,255,255,.09)} .btn:disabled{opacity:.55;cursor:wait}
+  .btn-primary{background:linear-gradient(180deg,#6b97ff,#4a77ea);border-color:rgba(255,255,255,.18);color:#fff}
+  .btn-primary:hover{background:linear-gradient(180deg,#7ba3ff,#5a85f0)}
+  .btn-buy{background:rgba(246,70,93,.14);border-color:rgba(246,70,93,.45);color:#ff8494}
+  .btn-buy:hover{background:rgba(246,70,93,.24)}
+  .field{background:rgba(0,0,0,.35);border:1px solid var(--line-strong);border-radius:10px;color:#fff;outline:none;transition:.15s}
+  .field:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,140,255,.18)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .thermo-seg{flex:1;height:22px;border-radius:3px;background:rgba(255,255,255,.06);transition:background .4s}
+  .scroll::-webkit-scrollbar{width:6px}.scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:6px}
+  .track{position:relative;height:8px;border-radius:99px;overflow:hidden;display:flex;background:rgba(255,255,255,.05)}
+  .mark{position:absolute;top:-4px;width:1px;height:16px;background:rgba(255,255,255,.35)}
+  .dot{position:absolute;top:50%;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid #0d121c;box-shadow:0 0 0 1px rgba(255,255,255,.5),0 0 12px currentColor}
+  #toast{position:fixed;right:20px;bottom:20px;z-index:60;max-width:340px;transform:translateY(20px);opacity:0;pointer-events:none;transition:.25s}
+  #toast.show{transform:none;opacity:1}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
 </head>
-<body class="pb-24">
-  <!-- 顶部状态栏 -->
-  <header class="sticky top-0 z-20 bg-[#0b0f19]/90 backdrop-blur border-b border-slate-800 px-4 py-3 flex justify-between items-center">
-    <div>
-      <h1 class="text-lg font-bold text-white tracking-tight">AShare Quant</h1>
-      <p class="text-xs text-slate-400">核心-卫星量化雷达 & 持仓监控</p>
+<body class="min-h-screen pb-10">
+
+<header class="sticky top-0 z-30 border-b" style="background:rgba(6,8,13,.8);backdrop-filter:blur(16px);border-color:var(--line)">
+  <div class="max-w-[1480px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg flex items-center justify-center mono text-[12px] font-bold text-white" style="background:linear-gradient(135deg,#5b8cff,#3a4fd8)">CS</div>
+      <div class="leading-tight">
+        <div class="text-[14px] font-semibold text-white">AShare Core-Satellite</div>
+        <div class="text-[11px]" style="color:var(--mute)">核心-卫星双引擎 · 半凯利风控实盘工作台</div>
+      </div>
     </div>
-    <span id="status-badge" class="px-2.5 py-1 text-xs rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">连接中...</span>
-  </header>
-
-  <main class="max-w-lg mx-auto px-4 pt-4 space-y-4">
-    <!-- 资产概览卡片 -->
-    <section class="card p-4 shadow-lg">
-      <div class="flex justify-between items-center mb-2">
-        <span class="text-xs text-slate-400">可用现金 (CNY)</span>
-        <button onclick="openCapitalModal()" class="text-xs text-blue-400 hover:underline">重置资金</button>
-      </div>
-      <div id="cash-display" class="text-2xl font-extrabold text-white tracking-wide">¥ 0.00</div>
-      <div class="mt-3 pt-3 border-t border-slate-800 flex justify-between text-xs text-slate-400">
-        <span>当前持仓数：<strong id="pos-count" class="text-slate-200">0</strong> 只</span>
-        <span>历史交割：<strong id="hist-count" class="text-slate-200">0</strong> 笔</span>
-      </div>
-    </section>
-
-    <!-- Tab 1: 今日选股雷达 -->
-    <section id="tab-signals" class="space-y-3">
-      <div class="flex gap-2">
-        <button onclick="scanSignals(false)" id="btn-scan" class="flex-1 btn-primary text-white font-semibold py-3 rounded-xl shadow active:scale-95 transition">
-          📡 扫描今日买点
-        </button>
-        <button onclick="confirmBuy()" id="btn-confirm" class="btn-success text-white font-semibold px-4 py-3 rounded-xl shadow active:scale-95 transition hidden">
-          ✅ 确认买入
-        </button>
-      </div>
-
-      <!-- 待确认买单列表 -->
-      <div id="pending-box" class="card p-4 hidden">
-        <h3 class="text-sm font-bold text-blue-400 mb-2">📋 待确认买入计划</h3>
-        <div id="pending-list" class="space-y-2 text-xs"></div>
-      </div>
-
-      <!-- 扫描报告输出框 -->
-      <div class="card p-4">
-        <h3 class="text-sm font-bold text-slate-300 mb-2">实时扫描分析报告</h3>
-        <pre id="signal-report" class="whitespace-pre-wrap text-xs text-slate-300 leading-relaxed font-mono">点击上方「扫描今日买点」开始全市场分析...</pre>
-      </div>
-    </section>
-
-    <!-- Tab 2: 持仓止盈止损检测 -->
-    <section id="tab-positions" class="space-y-3 hidden">
-      <button onclick="checkPositions()" id="btn-check" class="w-full btn-primary text-white font-semibold py-3 rounded-xl shadow active:scale-95 transition">
-        🛡️ 立即检测持仓止盈/止损
-      </button>
-
-      <div id="positions-list" class="space-y-3"></div>
-
-      <div class="card p-4">
-        <h3 class="text-sm font-bold text-slate-300 mb-2">风控雷达巡检详情</h3>
-        <pre id="pos-report" class="whitespace-pre-wrap text-xs text-slate-300 leading-relaxed font-mono">点击上方按钮刷新持仓实时风控状态...</pre>
-      </div>
-    </section>
-
-    <!-- Tab 3: 快捷指令与交割记录 -->
-    <section id="tab-chat" class="space-y-3 hidden">
-      <div class="card p-4 space-y-3">
-        <h3 class="text-sm font-bold text-slate-300">💬 自然语言终端</h3>
-        <div class="flex gap-2">
-          <input id="chat-input" type="text" placeholder="例如：已卖出 300413 33.5" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" />
-          <button onclick="sendChat()" class="btn-primary px-4 py-2.5 rounded-xl text-sm font-semibold text-white">发送</button>
-        </div>
-        <pre id="chat-reply" class="whitespace-pre-wrap text-xs text-slate-300 bg-slate-900/70 p-3 rounded-xl min-h-[80px] font-mono">等待指令...</pre>
-      </div>
-
-      <div class="card p-4">
-        <h3 class="text-sm font-bold text-slate-300 mb-2">📜 历史已平仓记录</h3>
-        <div id="history-list" class="space-y-2 text-xs text-slate-400">暂无交割记录</div>
-      </div>
-    </section>
-  </main>
-
-  <!-- 底部原生风格导航栏 -->
-  <nav class="fixed bottom-0 inset-x-0 bg-[#131a2a]/95 backdrop-blur border-t border-slate-800 flex justify-around py-2.5 z-30">
-    <button onclick="switchTab('signals')" id="nav-signals" class="flex flex-col items-center text-blue-400 text-xs font-semibold">
-      <span class="text-lg mb-0.5">📡</span>选股雷达
-    </button>
-    <button onclick="switchTab('positions')" id="nav-positions" class="flex flex-col items-center text-slate-400 text-xs">
-      <span class="text-lg mb-0.5">🛡️</span>持仓检测
-    </button>
-    <button onclick="switchTab('chat')" id="nav-chat" class="flex flex-col items-center text-slate-400 text-xs">
-      <span class="text-lg mb-0.5">💬</span>指令/账本
-    </button>
-  </nav>
-
-  <!-- 重置资金弹窗 -->
-  <div id="capital-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 px-4">
-    <div class="card p-5 w-full max-w-sm space-y-4">
-      <h3 class="text-base font-bold text-white">初始化账户总资金</h3>
-      <input id="capital-input" type="number" placeholder="输入金额，例如 1000000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white" />
-      <div class="flex gap-2 justify-end">
-        <button onclick="closeCapitalModal()" class="px-4 py-2 rounded-xl text-xs text-slate-400">取消</button>
-        <button onclick="submitCapital()" class="btn-primary px-4 py-2 rounded-xl text-xs font-semibold text-white">确认重置</button>
+    <div class="flex items-center gap-2.5">
+      <span id="clock" class="hidden sm:inline mono text-[11px]" style="color:var(--mute)">--:--:--</span>
+      <button onclick="openCapitalModal()" class="btn">重置本金</button>
+      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium" id="engine-pill" style="background:rgba(14,203,129,.1);border:1px solid rgba(14,203,129,.28);color:#3fe0a2">
+        <span id="engine-dot" class="w-1.5 h-1.5 rounded-full animate-pulse" style="background:#0ecb81"></span><span id="engine-text">引擎在线</span>
       </div>
     </div>
   </div>
+</header>
 
-  <script>
-    const API_BASE = window.location.origin;
+<main class="max-w-[1480px] mx-auto px-4 sm:px-6 pt-5 grid grid-cols-1 lg:grid-cols-12 gap-4">
 
-    function switchTab(tab) {
-      ['signals', 'positions', 'chat'].forEach(t => {
-        document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
-        const nav = document.getElementById(`nav-${t}`);
-        nav.classList.toggle('text-blue-400', t === tab);
-        nav.classList.toggle('font-semibold', t === tab);
-        nav.classList.toggle('text-slate-400', t !== tab);
-      });
-    }
+  <!-- 净值 -->
+  <section class="tile p-5 lg:col-span-8">
+    <div class="flex flex-wrap justify-between items-start gap-4">
+      <div>
+        <div class="t-desc mb-1.5">账户总资产 (CNY)</div>
+        <div class="flex items-baseline gap-3 flex-wrap">
+          <span id="total-equity" class="mono text-[34px] sm:text-[40px] font-bold text-white leading-none tracking-tight">¥ 0.00</span>
+          <span id="period-badge" class="mono text-[13px] font-semibold px-2 py-0.5 rounded-md bg-up up">+0.00%</span>
+        </div>
+        <div class="mono text-[11px] mt-2.5 flex flex-wrap gap-x-4 gap-y-1" style="color:var(--mute)">
+          <span>区间盈亏 <span id="period-pnl" class="text-slate-200">+¥0.00</span></span>
+          <span>开户本金 <span id="init-cap" class="text-slate-300">¥0.00</span></span>
+        </div>
+      </div>
+      <div class="seg" role="tablist" aria-label="统计周期">
+        <button onclick="changePeriod('1W')" data-period="1W" class="period-btn">1W</button>
+        <button onclick="changePeriod('1M')" data-period="1M" class="period-btn">1M</button>
+        <button onclick="changePeriod('1Q')" data-period="1Q" class="period-btn">1Q</button>
+        <button onclick="changePeriod('1Y')" data-period="1Y" class="period-btn">1Y</button>
+        <button onclick="changePeriod('ALL')" data-period="ALL" class="period-btn active">开户至今</button>
+      </div>
+    </div>
+    <div class="relative h-[240px] sm:h-[290px] w-full mt-4"><canvas id="equityChart"></canvas></div>
+  </section>
 
-    async function loadState() {
-      try {
-        const res = await fetch(`${API_BASE}/api/state`);
-        const data = await res.json();
-        document.getElementById('status-badge').textContent = '● 引擎在线';
-        document.getElementById('cash-display').textContent = `¥ ${Number(data.cash || 0).toLocaleString('zh-CN', {minimumFractionDigits: 2})}`;
-        const posKeys = Object.keys(data.positions || {});
-        document.getElementById('pos-count').textContent = posKeys.length;
-        document.getElementById('hist-count').textContent = (data.trade_history || []).length;
+  <!-- 仓位占比 -->
+  <section class="tile p-5 lg:col-span-4 flex flex-col">
+    <div class="t-title">核心-卫星仓位占比</div>
+    <div class="t-desc mt-0.5">现金缓冲 vs 股票持仓市值</div>
+    <div class="flex items-center gap-5 mt-4">
+      <div class="relative w-[132px] h-[132px] shrink-0">
+        <svg viewBox="0 0 130 130" class="w-full h-full -rotate-90">
+          <circle cx="65" cy="65" r="52" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="12"/>
+          <circle id="donut-cash" cx="65" cy="65" r="52" fill="none" stroke="#5b8cff" stroke-width="12" stroke-dasharray="0 326.7" style="transition:stroke-dasharray .6s"/>
+          <circle id="donut-pos" cx="65" cy="65" r="52" fill="none" stroke="#f0b429" stroke-width="12" stroke-dasharray="0 326.7" stroke-dashoffset="0" style="transition:stroke-dasharray .6s,stroke-dashoffset .6s"/>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <div class="t-desc">仓位</div>
+          <div id="donut-center" class="mono text-[20px] font-bold text-white">0.0%</div>
+        </div>
+      </div>
+      <div class="flex-1 space-y-3 min-w-0">
+        <div>
+          <div class="flex items-center gap-1.5 t-desc"><span class="w-2 h-2 rounded-sm" style="background:#5b8cff"></span>可用缓冲现金</div>
+          <div id="cash-val" class="mono text-[14px] font-semibold text-white mt-0.5">¥ 0.00</div>
+          <div id="cash-pct" class="mono text-[11px]" style="color:var(--mute)">0.0%</div>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5 t-desc"><span class="w-2 h-2 rounded-sm" style="background:#f0b429"></span>股票持仓市值</div>
+          <div id="pos-val" class="mono text-[14px] font-semibold text-white mt-0.5">¥ 0.00</div>
+          <div id="pos-pct" class="mono text-[11px]" style="color:var(--mute)">0.0%</div>
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-2.5 mt-auto pt-5">
+      <div class="sub p-3">
+        <div class="t-desc">实盘胜率 (Kelly)</div>
+        <div id="win-rate" class="mono text-[17px] font-bold mt-0.5" style="color:var(--amber)">0.0%</div>
+      </div>
+      <div class="sub p-3">
+        <div class="t-desc">持仓 / 交割数</div>
+        <div id="counts-val" class="mono text-[17px] font-bold text-slate-100 mt-0.5">0 只 / 0 笔</div>
+      </div>
+    </div>
+  </section>
 
-        // 渲染待确认买单
-        const pending = data.pending_buy_plan || [];
-        const pendingBox = document.getElementById('pending-box');
-        const btnConfirm = document.getElementById('btn-confirm');
-        if (pending.length > 0) {
-          pendingBox.classList.remove('hidden');
-          btnConfirm.classList.remove('hidden');
-          document.getElementById('pending-list').innerHTML = pending.map(p => `
-            <div class="bg-slate-900/80 p-2.5 rounded-lg flex justify-between items-center">
-              <div>
-                <div class="font-bold text-white">${p.name || ''} (${p.code})</div>
-                <div class="text-slate-400">建议 ${p.shares} 股 @ ¥${p.price}</div>
-              </div>
-              <span class="text-blue-400 font-semibold">${p.role || '仓位'}</span>
-            </div>
-          `).join('');
-        } else {
-          pendingBox.classList.add('hidden');
-          btnConfirm.classList.add('hidden');
-        }
+  <!-- 风控雷达 -->
+  <section class="tile p-5 lg:col-span-7">
+    <div class="flex justify-between items-start gap-3 mb-4">
+      <div>
+        <div class="t-title">持仓止盈止损雷达</div>
+        <div class="t-desc mt-0.5">-2.2×ATR 硬止损线 → +7.5% 移动锁利线 → +15% 目标</div>
+      </div>
+      <button onclick="checkPositions()" id="btn-check" class="btn btn-primary shrink-0">刷新实时风控</button>
+    </div>
+    <div class="flex flex-wrap gap-x-4 gap-y-1 t-desc mb-3">
+      <span class="flex items-center gap-1.5"><i class="w-2.5 h-1.5 rounded-full inline-block" style="background:var(--down)"></i>风险区（止损→成本）</span>
+      <span class="flex items-center gap-1.5"><i class="w-2.5 h-1.5 rounded-full inline-block" style="background:#c9707d"></i>盈利区（成本→锁利）</span>
+      <span class="flex items-center gap-1.5"><i class="w-2.5 h-1.5 rounded-full inline-block" style="background:var(--up)"></i>锁利区（锁利→目标）</span>
+    </div>
+    <div id="positions-list" class="space-y-3"></div>
+    <details class="mt-4">
+      <summary class="text-[11px] cursor-pointer hover:text-white" style="color:var(--mute)">查看风控引擎原始巡检日志</summary>
+      <pre id="pos-report" class="mono mt-2 p-3.5 rounded-xl text-[11px] whitespace-pre-wrap text-slate-300 scroll max-h-56 overflow-y-auto" style="background:rgba(0,0,0,.4);border:1px solid var(--line)">等待巡检...</pre>
+    </details>
+  </section>
 
-        // 渲染持仓卡片
-        const posContainer = document.getElementById('positions-list');
-        if (posKeys.length === 0) {
-          posContainer.innerHTML = '<div class="card p-4 text-center text-xs text-slate-400">当前空仓，暂无持仓监控记录</div>';
-        } else {
-          posContainer.innerHTML = posKeys.map(code => {
-            const p = data.positions[code];
-            return `
-              <div class="card p-4 space-y-2">
-                <div class="flex justify-between items-center">
-                  <div>
-                    <span class="font-bold text-white text-sm">${p.name || code}</span>
-                    <span class="text-xs text-slate-400 ml-1">${code}</span>
-                  </div>
-                  <button onclick="quickSell('${code}')" class="btn-danger text-white text-xs px-3 py-1 rounded-lg">记录卖出</button>
-                </div>
-                <div class="grid grid-cols-3 gap-2 text-xs bg-slate-900/70 p-2.5 rounded-xl">
-                  <div><span class="text-slate-400 block">持仓股数</span><strong class="text-slate-200">${p.shares}</strong></div>
-                  <div><span class="text-slate-400 block">成本均价</span><strong class="text-slate-200">¥${Number(p.cost_price || p.entry_price || 0).toFixed(2)}</strong></div>
-                  <div><span class="text-slate-400 block">硬止损线</span><strong class="text-rose-400">¥${Number(p.stop_loss || 0).toFixed(2)}</strong></div>
-                </div>
-              </div>
-            `;
-          }).join('');
-        }
+  <!-- 市场温度 + 信号 -->
+  <section class="tile p-5 lg:col-span-5 flex flex-col gap-4">
+    <div>
+      <div class="t-title">市场温度与选股雷达</div>
+      <div class="t-desc mt-0.5">主战场红盘率择时 · 龙头缩量回踩海选</div>
+    </div>
 
-        // 渲染历史记录
-        const hist = data.trade_history || [];
-        if (hist.length > 0) {
-          document.getElementById('history-list').innerHTML = hist.slice().reverse().map(h => `
-            <div class="bg-slate-900/70 p-2.5 rounded-lg flex justify-between">
-              <span>${h.name || h.code} (${h.code})</span>
-              <span class="${(h.pnl_pct || 0) >= 0 ? 'text-rose-400' : 'text-emerald-400'} font-bold">
-                ${((h.pnl_pct || 0) * 100).toFixed(2)}%
-              </span>
-            </div>
-          `).join('');
-        }
-      } catch (e) {
-        document.getElementById('status-badge').textContent = '● 离线';
-        document.getElementById('status-badge').className = 'px-2.5 py-1 text-xs rounded-full bg-rose-500/20 text-rose-400';
-      }
-    }
+    <div class="sub p-4">
+      <div class="flex justify-between items-end mb-3">
+        <div>
+          <div class="t-desc">主战场多头温度计</div>
+          <div class="flex items-baseline gap-1.5 mt-0.5">
+            <span id="thermo-num" class="mono text-[26px] font-bold text-white leading-none">--</span>
+            <span class="mono text-[12px]" style="color:var(--mute)">%</span>
+          </div>
+        </div>
+        <span id="market-temp-label" class="text-[11px] font-semibold px-2 py-1 rounded-md" style="background:rgba(255,255,255,.06);color:var(--mute)">待扫描检测</span>
+      </div>
+      <div class="relative">
+        <div id="thermo" class="flex gap-[3px]"></div>
+        <div class="absolute top-[-5px] bottom-[-5px] w-px" style="left:50%;background:rgba(255,255,255,.4)"></div>
+        <div id="thermo-pin" class="absolute top-[-9px] w-0 h-0 hidden" style="left:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #fff;transform:translateX(-5px);transition:left .5s"></div>
+      </div>
+      <div class="flex justify-between mono text-[10px] mt-2" style="color:var(--dim)"><span>0 防御</span><span>50 多空分界</span><span>100 极热</span></div>
+    </div>
 
-    async function scanSignals() {
-      const btn = document.getElementById('btn-scan');
-      btn.disabled = true; btn.textContent = '⏳ 正在全市场海选扫描...';
-      try {
-        const res = await fetch(`${API_BASE}/api/signals`);
-        const data = await res.json();
-        document.getElementById('signal-report').textContent = data.report || '扫描完成';
-        await loadState();
-      } catch (e) {
-        document.getElementById('signal-report').textContent = '扫描失败：' + e.message;
-      } finally {
-        btn.disabled = false; btn.textContent = '📡 扫描今日买点';
-      }
-    }
+    <div class="flex gap-2.5">
+      <button onclick="scanSignals()" id="btn-scan" class="btn btn-primary flex-1 py-2.5">扫描今日交易信号</button>
+      <button onclick="confirmBuy()" id="btn-confirm" class="btn btn-buy hidden">确认买入</button>
+    </div>
 
-    async function checkPositions() {
-      const btn = document.getElementById('btn-check');
-      btn.disabled = true; btn.textContent = '⏳ 正在检测实时行情与止盈止损...';
-      try {
-        const res = await fetch(`${API_BASE}/api/positions/check`);
-        const data = await res.json();
-        document.getElementById('pos-report').textContent = data.report || '检测完成';
-        await loadState();
-      } catch (e) {
-        document.getElementById('pos-report').textContent = '检测失败：' + e.message;
-      } finally {
-        btn.disabled = false; btn.textContent = '🛡️ 立即检测持仓止盈/止损';
-      }
-    }
+    <div id="pending-box" class="hidden space-y-2">
+      <div class="text-[11px] font-semibold" style="color:#8fb0ff">待执行半凯利买单建议</div>
+      <div id="pending-list" class="space-y-2"></div>
+    </div>
 
-    async function confirmBuy() {
-      if (!confirm('确认已按计划在券商成交并写入本地账本？')) return;
-      const res = await fetch(`${API_BASE}/api/confirm-buy`, { method: 'POST' });
-      const data = await res.json();
-      alert(data.reply);
-      await loadState();
-    }
+    <div class="sub p-3.5 flex-1 min-h-[120px]">
+      <div class="flex justify-between items-center mb-2">
+        <span class="t-desc">策略信号输出</span>
+        <span id="scan-time" class="mono text-[11px]" style="color:var(--dim)">--:--</span>
+      </div>
+      <div id="signal-report" class="mono text-[11.5px] text-slate-300 leading-relaxed whitespace-pre-wrap scroll max-h-64 overflow-y-auto">点击上方按钮启动全市场流动性海选与买点扫描...</div>
+    </div>
+  </section>
 
-    async function quickSell(code) {
-      const price = prompt(`请输入 ${code} 的实际卖出成交价：`);
-      if (!price || isNaN(price)) return;
-      const res = await fetch(`${API_BASE}/api/sell`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, price: parseFloat(price) })
-      });
-      const data = await res.json();
-      alert(data.reply);
-      await loadState();
-    }
+  <!-- 指令与账本 -->
+  <section class="tile p-5 lg:col-span-12">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="space-y-3">
+        <div>
+          <div class="t-title">智能体快捷指令</div>
+          <div class="t-desc mt-0.5">自然语言记账，例如：已卖出 300413 33.5</div>
+        </div>
+        <div class="flex gap-2">
+          <input id="chat-input" type="text" placeholder="输入指令，如：已卖出 300413 33.5" onkeydown="if(event.key==='Enter') sendChat()" class="field mono flex-1 px-3.5 py-2.5 text-[12px]" />
+          <button onclick="sendChat()" class="btn">执行</button>
+        </div>
+        <div id="chat-reply" class="hidden mono p-3 rounded-xl text-[11.5px] whitespace-pre-wrap" style="background:rgba(91,140,255,.08);border:1px solid rgba(91,140,255,.25);color:#b9ceff"></div>
+      </div>
+      <div>
+        <div class="t-title mb-2.5">最近已平仓交割记录</div>
+        <div id="history-list" class="space-y-1.5 max-h-52 overflow-y-auto scroll pr-1"></div>
+      </div>
+    </div>
+  </section>
+</main>
 
-    async function sendChat() {
-      const input = document.getElementById('chat-input');
-      if (!input.value.trim()) return;
-      const res = await fetch(`${API_BASE}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command: input.value })
-      });
-      const data = await res.json();
-      document.getElementById('chat-reply').textContent = data.reply;
-      input.value = '';
-      await loadState();
-    }
+<div id="capital-modal" class="fixed inset-0 hidden items-center justify-center z-50 px-4" style="background:rgba(0,0,0,.7);backdrop-filter:blur(6px)">
+  <div class="tile p-6 w-full max-w-sm space-y-4" style="background:var(--panel-solid)">
+    <div>
+      <h3 class="text-[15px] font-semibold text-white">初始化 / 重置账户本金</h3>
+      <p class="t-desc mt-1">重置后将以新本金作为开户基准。</p>
+    </div>
+    <input id="capital-input" type="number" placeholder="例如：100000" class="field mono w-full px-3.5 py-2.5 text-[14px]" />
+    <div class="flex gap-2 justify-end pt-1">
+      <button onclick="closeCapitalModal()" class="btn">取消</button>
+      <button onclick="submitCapital()" class="btn btn-primary">确认重置</button>
+    </div>
+  </div>
+</div>
 
-    function openCapitalModal() { document.getElementById('capital-modal').classList.replace('hidden', 'flex'); }
-    function closeCapitalModal() { document.getElementById('capital-modal').classList.replace('flex', 'hidden'); }
-    async function submitCapital() {
-      const val = parseFloat(document.getElementById('capital-input').value);
-      if (!val || val <= 0) return;
-      await fetch(`${API_BASE}/api/capital`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: val })
-      });
-      closeCapitalModal();
-      await loadState();
-    }
+<div id="toast" class="tile px-4 py-3 text-[12px] mono whitespace-pre-wrap" style="background:var(--panel-solid)"></div>
 
+<script>
+  const API_BASE = window.location.origin;
+  let currentPeriod = 'ALL', equityChartInstance = null, toastTimer = null;
+  const fmtMoney = n => '¥ ' + Number(n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const CIRC = 2 * Math.PI * 52;
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3600);
+  }
+
+  function setEngine(online) {
+    const pill = document.getElementById('engine-pill'), dot = document.getElementById('engine-dot');
+    document.getElementById('engine-text').textContent = online ? '引擎在线' : '引擎离线';
+    pill.style.background = online ? 'rgba(14,203,129,.1)' : 'rgba(246,70,93,.1)';
+    pill.style.borderColor = online ? 'rgba(14,203,129,.28)' : 'rgba(246,70,93,.3)';
+    pill.style.color = online ? '#3fe0a2' : '#ff8494';
+    dot.style.background = online ? '#0ecb81' : '#f6465d';
+  }
+
+  setInterval(() => { document.getElementById('clock').textContent = new Date().toTimeString().slice(0, 8); }, 1000);
+
+  function buildThermo() {
+    const box = document.getElementById('thermo');
+    box.innerHTML = Array.from({ length: 25 }, () => '<div class="thermo-seg"></div>').join('');
+  }
+  function setThermo(pct) {
+    const segs = document.querySelectorAll('#thermo .thermo-seg'), n = segs.length;
+    const lit = Math.round(clamp(pct, 0, 100) / 100 * n);
+    segs.forEach((s, i) => {
+      if (i < lit) {
+        const r = i / (n - 1);
+        s.style.background = r < 0.5 ? `rgba(14,203,129,${0.45 + r})` : `rgba(246,70,93,${0.35 + r * 0.65})`;
+      } else s.style.background = 'rgba(255,255,255,.06)';
+    });
+    const pin = document.getElementById('thermo-pin');
+    pin.classList.remove('hidden'); pin.style.left = clamp(pct, 0, 100) + '%';
+    document.getElementById('thermo-num').textContent = pct.toFixed(1);
+  }
+
+  function changePeriod(p) {
+    currentPeriod = p;
+    document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b.dataset.period === p));
     loadState();
-  </script>
+  }
+
+  const crosshair = {
+    id: 'crosshair',
+    afterDatasetsDraw(chart) {
+      const a = chart.tooltip && chart.tooltip._active;
+      if (!a || !a.length) return;
+      const { ctx, chartArea } = chart, x = a[0].element.x;
+      ctx.save(); ctx.beginPath(); ctx.setLineDash([3, 3]);
+      ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom);
+      ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+    }
+  };
+
+  function renderChart(curve, isPos) {
+    const ctx = document.getElementById('equityChart').getContext('2d');
+    const color = isPos ? '#f6465d' : '#0ecb81', rgb = isPos ? '246,70,93' : '14,203,129';
+    const grad = ctx.createLinearGradient(0, 0, 0, 290);
+    grad.addColorStop(0, `rgba(${rgb},0.34)`);
+    grad.addColorStop(0.6, `rgba(${rgb},0.08)`);
+    grad.addColorStop(1, `rgba(${rgb},0)`);
+    if (equityChartInstance) equityChartInstance.destroy();
+    equityChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: curve.map(d => d.date.slice(5)),
+        datasets: [{
+          data: curve.map(d => d.equity), borderColor: color, borderWidth: 2, backgroundColor: grad, fill: true, tension: 0.38,
+          pointRadius: curve.length <= 5 ? 4 : 0, pointHoverRadius: 5, pointBackgroundColor: color, pointBorderColor: '#0d121c', pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        animation: { duration: 500 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(13,18,28,.96)', borderColor: 'rgba(255,255,255,.12)', borderWidth: 1, padding: 12, cornerRadius: 10,
+            titleColor: '#7b879c', titleFont: { family: 'JetBrains Mono', size: 11 }, bodyFont: { family: 'JetBrains Mono', size: 12, weight: '600' },
+            bodyColor: '#e6ebf4', displayColors: false,
+            callbacks: {
+              label: c => ` 净值: ¥${Number(c.parsed.y).toLocaleString()} (${curve[c.dataIndex].return_pct >= 0 ? '+' : ''}${curve[c.dataIndex].return_pct}%)`
+            }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, border: { display: false }, ticks: { color: '#566178', font: { size: 10, family: 'JetBrains Mono' }, maxTicksLimit: 8 } },
+          y: { position: 'right', grid: { color: 'rgba(255,255,255,0.045)' }, border: { display: false }, ticks: { color: '#566178', font: { size: 10, family: 'JetBrains Mono' }, callback: v => '¥' + (v >= 10000 ? (v / 10000).toFixed(1) + 'w' : v) } }
+        }
+      },
+      plugins: [crosshair]
+    });
+  }
+
+  function renderDonut(cash, pos) {
+    const total = Math.max(0.01, Number(cash || 0) + Number(pos || 0));
+    const cp = clamp(Number(cash || 0) / total * 100, 0, 100), pp = clamp(Number(pos || 0) / total * 100, 0, 100);
+    const cl = cp / 100 * CIRC, pl = pp / 100 * CIRC;
+    const dc = document.getElementById('donut-cash'), dp = document.getElementById('donut-pos');
+    dc.setAttribute('stroke-dasharray', `${Math.max(0, cl - 2)} ${CIRC}`);
+    dp.setAttribute('stroke-dasharray', `${Math.max(0, pl - 2)} ${CIRC}`);
+    dp.setAttribute('stroke-dashoffset', `${-cl}`);
+    document.getElementById('donut-center').textContent = pp.toFixed(1) + '%';
+    document.getElementById('cash-pct').textContent = cp.toFixed(1) + '% 占比';
+    document.getElementById('pos-pct').textContent = pp.toFixed(1) + '% 占比';
+  }
+
+  function positionCard(code, p) {
+    const cost = Number(p.cost_price || p.entry_price || 0), curr = Number(p.current_price || cost);
+    const stop = Number(p.stop_loss || cost * 0.92), lock = cost * 1.075, target = cost * 1.15;
+    const pnlPct = cost > 0 ? ((curr / cost - 1) * 100) : 0, up = pnlPct >= 0;
+    const lo = Math.min(stop, curr) * 0.997, hi = Math.max(target, curr) * 1.003, span = Math.max(0.01, hi - lo);
+    const pos = v => clamp((v - lo) / span * 100, 0, 100);
+    const pStop = pos(stop), pCost = pos(cost), pLock = pos(lock), pTarget = pos(target), pCur = pos(curr);
+    const toStop = curr > 0 ? ((curr - stop) / curr * 100) : 0, toLock = lock > 0 ? ((lock - curr) / curr * 100) : 0;
+    let zone = '风险区', zc = '#0ecb81';
+    if (curr >= lock) { zone = '移动锁利区'; zc = '#f6465d'; }
+    else if (curr >= cost) { zone = '盈利区'; zc = '#e0707f'; }
+    else if (curr <= stop) { zone = '触发止损'; zc = '#f0b429'; }
+    return `<div class="sub p-4">
+      <div class="flex justify-between items-center gap-3">
+        <div class="min-w-0">
+          <span class="font-semibold text-white text-[14px]">${esc(p.name || code)}</span>
+          <span class="mono text-[11px] ml-1.5" style="color:var(--mute)">${esc(code)}</span>
+          <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded ml-2" style="color:${zc};background:rgba(255,255,255,.05)">${zone}</span>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <div class="text-right">
+            <div class="mono text-[15px] font-bold ${up ? 'up' : 'down'}">${up ? '+' : ''}${pnlPct.toFixed(2)}%</div>
+            <div class="mono text-[10px]" style="color:var(--mute)">现价 ¥${curr.toFixed(2)}</div>
+          </div>
+          <button onclick="quickSell('${esc(code)}')" class="btn btn-buy" style="padding:6px 10px">卖出记账</button>
+        </div>
+      </div>
+      <div class="relative mt-5 mb-1">
+        <div class="track">
+          <div style="width:${Math.max(0, pCost - pStop)}%;margin-left:${pStop}%;background:linear-gradient(90deg,rgba(14,203,129,.85),rgba(14,203,129,.35))"></div>
+          <div style="width:${Math.max(0, pLock - pCost)}%;background:linear-gradient(90deg,rgba(246,70,93,.3),rgba(246,70,93,.55))"></div>
+          <div style="width:${Math.max(0, pTarget - pLock)}%;background:linear-gradient(90deg,rgba(246,70,93,.7),rgba(246,70,93,1))"></div>
+        </div>
+        <div class="mark" style="left:${pStop}%"></div><div class="mark" style="left:${pCost}%"></div>
+        <div class="mark" style="left:${pLock}%"></div><div class="mark" style="left:${pTarget}%"></div>
+        <div class="dot" style="left:${pCur}%;background:${zc};color:${zc}"></div>
+      </div>
+      <div class="relative h-8 mono text-[10px]">
+        <div class="absolute" style="left:${pStop}%;transform:translateX(-${pStop > 85 ? 100 : pStop < 8 ? 0 : 50}%)"><div style="color:var(--down)">止损</div><div class="text-slate-300">${stop.toFixed(2)}</div></div>
+        <div class="absolute" style="left:${pCost}%;transform:translateX(-50%)"><div style="color:var(--mute)">成本</div><div class="text-slate-300">${cost.toFixed(2)}</div></div>
+        <div class="absolute" style="left:${pLock}%;transform:translateX(-50%)"><div style="color:#e88b97">锁利 +7.5%</div><div class="text-slate-300">${lock.toFixed(2)}</div></div>
+        <div class="absolute" style="left:${pTarget}%;transform:translateX(-${pTarget > 92 ? 100 : 50}%)"><div style="color:var(--up)">目标</div><div class="text-slate-300">${target.toFixed(2)}</div></div>
+      </div>
+      <div class="flex justify-between mono text-[10px] mt-1" style="color:var(--mute)">
+        <span>距止损 <span class="text-slate-200">${toStop.toFixed(2)}%</span></span>
+        <span>距锁利线 <span class="text-slate-200">${toLock > 0 ? toLock.toFixed(2) + '%' : '已突破'}</span></span>
+      </div>
+    </div>`;
+  }
+
+  async function loadState() {
+    let data;
+    try {
+      const res = await fetch(`${API_BASE}/api/state?period=${currentPeriod}`);
+      data = await res.json(); setEngine(true);
+    } catch (e) { setEngine(false); return; }
+
+    document.getElementById('total-equity').textContent = fmtMoney(data.total_equity);
+    document.getElementById('cash-val').textContent = fmtMoney(data.cash);
+    document.getElementById('pos-val').textContent = fmtMoney(data.position_value);
+    document.getElementById('init-cap').textContent = fmtMoney(data.initial_capital);
+    document.getElementById('win-rate').textContent = `${data.win_rate}%`;
+    const posKeys = Object.keys(data.positions || {}), hist = data.trade_history || [];
+    document.getElementById('counts-val').textContent = `${posKeys.length} 只 / ${hist.length} 笔`;
+    renderDonut(data.cash, data.position_value);
+
+    const ret = Number(data.period_return_pct || 0), pnl = Number(data.period_pnl || 0), isPos = ret >= 0;
+    const badge = document.getElementById('period-badge');
+    badge.textContent = `${isPos ? '+' : ''}${ret.toFixed(2)}%`;
+    badge.className = `mono text-[13px] font-semibold px-2 py-0.5 rounded-md ${isPos ? 'bg-up up' : 'bg-down down'}`;
+    const pnlEl = document.getElementById('period-pnl');
+    pnlEl.textContent = `${pnl >= 0 ? '+' : '-'}¥${Math.abs(pnl).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}`;
+    pnlEl.className = isPos ? 'up font-semibold' : 'down font-semibold';
+    renderChart(data.equity_curve || [], isPos);
+
+    const pending = data.pending_buy_plan || [];
+    document.getElementById('pending-box').classList.toggle('hidden', !pending.length);
+    document.getElementById('btn-confirm').classList.toggle('hidden', !pending.length);
+    document.getElementById('pending-list').innerHTML = pending.map(p => `
+      <div class="sub p-3 flex justify-between items-center" style="border-color:rgba(91,140,255,.28)">
+        <div>
+          <div class="font-semibold text-white text-[12px]">${esc(p.name || '')} <span class="mono" style="color:var(--mute)">${esc(p.code)}</span></div>
+          <div class="text-[11px] mono mt-0.5" style="color:var(--mute)">买入 ${esc(p.shares)} 股 @ ¥${esc(p.price)}</div>
+        </div>
+        <span class="text-[10px] font-semibold px-2 py-1 rounded-md" style="background:rgba(91,140,255,.15);color:#8fb0ff">${esc(p.role || '卫星仓')}</span>
+      </div>`).join('');
+
+    document.getElementById('positions-list').innerHTML = !posKeys.length
+      ? `<div class="text-center py-10 text-[12px] rounded-xl" style="color:var(--mute);border:1px dashed var(--line-strong)">当前空仓运行中 · 扫描信号后在右侧确认买单</div>`
+      : posKeys.map(code => positionCard(code, data.positions[code])).join('');
+
+    document.getElementById('history-list').innerHTML = !hist.length
+      ? `<div class="text-[12px] text-center py-6 sub" style="color:var(--mute)">暂无历史平仓记录</div>`
+      : hist.slice().reverse().map(h => {
+          const r = Number(h.pnl_pct || 0) * 100;
+          return `<div class="sub px-3 py-2.5 flex justify-between items-center text-[12px]">
+            <span class="text-slate-200">${esc(h.name || h.code)} <span class="mono" style="color:var(--dim)">${esc(h.code)}</span></span>
+            <span class="mono font-semibold ${r >= 0 ? 'up' : 'down'}">${r >= 0 ? '+' : ''}${r.toFixed(2)}%</span>
+          </div>`;
+        }).join('');
+  }
+
+  async function scanSignals() {
+    const btn = document.getElementById('btn-scan'); btn.disabled = true; btn.textContent = '正在全市场实时扫描...';
+    try {
+      const res = await fetch(`${API_BASE}/api/signals`), data = await res.json(), rep = data.report || '';
+      document.getElementById('signal-report').textContent = rep;
+      document.getElementById('scan-time').textContent = new Date().toTimeString().slice(0, 5);
+      const m = rep.match(/红盘率[:：]\s*([\d.]+)%/);
+      if (m) {
+        const pct = parseFloat(m[1]);
+        setThermo(pct);
+        const lab = document.getElementById('market-temp-label');
+        lab.textContent = pct >= 50 ? '多头活跃区' : '防御观察区';
+        lab.style.color = pct >= 50 ? '#ff8494' : '#3fe0a2';
+        lab.style.background = pct >= 50 ? 'rgba(246,70,93,.12)' : 'rgba(14,203,129,.12)';
+      }
+      await loadState();
+    } catch (e) { toast('扫描失败，请检查后端服务'); setEngine(false); }
+    finally { btn.disabled = false; btn.textContent = '扫描今日交易信号'; }
+  }
+
+  async function checkPositions() {
+    const btn = document.getElementById('btn-check'); btn.disabled = true; btn.textContent = '检测中...';
+    try {
+      const res = await fetch(`${API_BASE}/api/positions/check`), data = await res.json();
+      document.getElementById('pos-report').textContent = data.report || '巡检完成';
+      await loadState();
+    } catch (e) { toast('风控巡检失败，请检查后端服务'); setEngine(false); }
+    finally { btn.disabled = false; btn.textContent = '刷新实时风控'; }
+  }
+
+  async function confirmBuy() {
+    if (!confirm('确认已按买单计划成交并记入本地账本？')) return;
+    const res = await fetch(`${API_BASE}/api/confirm-buy`, { method: 'POST' });
+    toast((await res.json()).reply); await loadState();
+  }
+
+  async function quickSell(code) {
+    const price = prompt(`请输入 ${code} 的实际卖出成交价：`);
+    if (!price || isNaN(price)) return;
+    const res = await fetch(`${API_BASE}/api/sell`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, price: parseFloat(price) }) });
+    toast((await res.json()).reply); await loadState();
+  }
+
+  async function sendChat() {
+    const inp = document.getElementById('chat-input'); if (!inp.value.trim()) return;
+    const res = await fetch(`${API_BASE}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: inp.value }) });
+    const box = document.getElementById('chat-reply'); box.classList.remove('hidden'); box.textContent = (await res.json()).reply;
+    inp.value = ''; await loadState();
+  }
+
+  const openCapitalModal = () => document.getElementById('capital-modal').classList.replace('hidden', 'flex');
+  const closeCapitalModal = () => document.getElementById('capital-modal').classList.replace('flex', 'hidden');
+  async function submitCapital() {
+    const val = parseFloat(document.getElementById('capital-input').value); if (!val || val <= 0) return;
+    await fetch(`${API_BASE}/api/capital`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: val }) });
+    closeCapitalModal(); await loadState();
+  }
+
+  buildThermo();
+  loadState();
+</script>
 </body>
 </html>
