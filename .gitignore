@@ -1,0 +1,15 @@
+# Python & IDE
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store
+
+# 敏感配置与个人实盘账本（防止泄露微信密钥与个人持仓）
+config.yaml
+*.env
+data_cache/
+*.json
