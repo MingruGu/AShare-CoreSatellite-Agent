@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>AShare Quant App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #0b0f19; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .card { background-color: #131a2a; border: 1px solid #1e293b; border-radius: 16px; }
+    .btn-primary { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+    .btn-danger { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+    .btn-success { background: linear-gradient(135deg, #059669, #047857); }
+  </style>
+</head>
+<body class="pb-24">
+  <!-- 顶部状态栏 -->
+  <header class="sticky top-0 z-20 bg-[#0b0f19]/90 backdrop-blur border-b border-slate-800 px-4 py-3 flex justify-between items-center">
+    <div>
+      <h1 class="text-lg font-bold text-white tracking-tight">AShare Quant</h1>
+      <p class="text-xs text-slate-400">核心-卫星量化雷达 & 持仓监控</p>
+    </div>
+    <span id="status-badge" class="px-2.5 py-1 text-xs rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">连接中...</span>
+  </header>
+
+  <main class="max-w-lg mx-auto px-4 pt-4 space-y-4">
+    <!-- 资产概览卡片 -->
+    <section class="card p-4 shadow-lg">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-xs text-slate-400">可用现金 (CNY)</span>
+        <button onclick="openCapitalModal()" class="text-xs text-blue-400 hover:underline">重置资金</button>
+      </div>
+      <div id="cash-display" class="text-2xl font-extrabold text-white tracking-wide">¥ 0.00</div>
+      <div class="mt-3 pt-3 border-t border-slate-800 flex justify-between text-xs text-slate-400">
+        <span>当前持仓数：<strong id="pos-count" class="text-slate-200">0</strong> 只</span>
+        <span>历史交割：<strong id="hist-count" class="text-slate-200">0</strong> 笔</span>
+      </div>
+    </section>
+
+    <!-- Tab 1: 今日选股雷达 -->
+    <section id="tab-signals" class="space-y-3">
+      <div class="flex gap-2">
+        <button onclick="scanSignals(false)" id="btn-scan" class="flex-1 btn-primary text-white font-semibold py-3 rounded-xl shadow active:scale-95 transition">
+          📡 扫描今日买点
+        </button>
+        <button onclick="confirmBuy()" id="btn-confirm" class="btn-success text-white font-semibold px-4 py-3 rounded-xl shadow active:scale-95 transition hidden">
+          ✅ 确认买入
+        </button>
+      </div>
+
+      <!-- 待确认买单列表 -->
+      <div id="pending-box" class="card p-4 hidden">
+        <h3 class="text-sm font-bold text-blue-400 mb-2">📋 待确认买入计划</h3>
+        <div id="pending-list" class="space-y-2 text-xs"></div>
+      </div>
+
+      <!-- 扫描报告输出框 -->
+      <div class="card p-4">
+        <h3 class="text-sm font-bold text-slate-300 mb-2">实时扫描分析报告</h3>
+        <pre id="signal-report" class="whitespace-pre-wrap text-xs text-slate-300 leading-relaxed font-mono">点击上方「扫描今日买点」开始全市场分析...</pre>
+      </div>
+    </section>
+
+    <!-- Tab 2: 持仓止盈止损检测 -->
+    <section id="tab-positions" class="space-y-3 hidden">
+      <button onclick="checkPositions()" id="btn-check" class="w-full btn-primary text-white font-semibold py-3 rounded-xl shadow active:scale-95 transition">
+        🛡️ 立即检测持仓止盈/止损
+      </button>
+
+      <div id="positions-list" class="space-y-3"></div>
+
+      <div class="card p-4">
+        <h3 class="text-sm font-bold text-slate-300 mb-2">风控雷达巡检详情</h3>
+        <pre id="pos-report" class="whitespace-pre-wrap text-xs text-slate-300 leading-relaxed font-mono">点击上方按钮刷新持仓实时风控状态...</pre>
+      </div>
+    </section>
+
+    <!-- Tab 3: 快捷指令与交割记录 -->
+    <section id="tab-chat" class="space-y-3 hidden">
+      <div class="card p-4 space-y-3">
+        <h3 class="text-sm font-bold text-slate-300">💬 自然语言终端</h3>
+        <div class="flex gap-2">
+          <input id="chat-input" type="text" placeholder="例如：已卖出 300413 33.5" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500" />
+          <button onclick="sendChat()" class="btn-primary px-4 py-2.5 rounded-xl text-sm font-semibold text-white">发送</button>
+        </div>
+        <pre id="chat-reply" class="whitespace-pre-wrap text-xs text-slate-300 bg-slate-900/70 p-3 rounded-xl min-h-[80px] font-mono">等待指令...</pre>
+      </div>
+
+      <div class="card p-4">
+        <h3 class="text-sm font-bold text-slate-300 mb-2">📜 历史已平仓记录</h3>
+        <div id="history-list" class="space-y-2 text-xs text-slate-400">暂无交割记录</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 底部原生风格导航栏 -->
+  <nav class="fixed bottom-0 inset-x-0 bg-[#131a2a]/95 backdrop-blur border-t border-slate-800 flex justify-around py-2.5 z-30">
+    <button onclick="switchTab('signals')" id="nav-signals" class="flex flex-col items-center text-blue-400 text-xs font-semibold">
+      <span class="text-lg mb-0.5">📡</span>选股雷达
+    </button>
+    <button onclick="switchTab('positions')" id="nav-positions" class="flex flex-col items-center text-slate-400 text-xs">
+      <span class="text-lg mb-0.5">🛡️</span>持仓检测
+    </button>
+    <button onclick="switchTab('chat')" id="nav-chat" class="flex flex-col items-center text-slate-400 text-xs">
+      <span class="text-lg mb-0.5">💬</span>指令/账本
+    </button>
+  </nav>
+
+  <!-- 重置资金弹窗 -->
+  <div id="capital-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50 px-4">
+    <div class="card p-5 w-full max-w-sm space-y-4">
+      <h3 class="text-base font-bold text-white">初始化账户总资金</h3>
+      <input id="capital-input" type="number" placeholder="输入金额，例如 1000000" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-white" />
+      <div class="flex gap-2 justify-end">
+        <button onclick="closeCapitalModal()" class="px-4 py-2 rounded-xl text-xs text-slate-400">取消</button>
+        <button onclick="submitCapital()" class="btn-primary px-4 py-2 rounded-xl text-xs font-semibold text-white">确认重置</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+
+    function switchTab(tab) {
+      ['signals', 'positions', 'chat'].forEach(t => {
+        document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+        const nav = document.getElementById(`nav-${t}`);
+        nav.classList.toggle('text-blue-400', t === tab);
+        nav.classList.toggle('font-semibold', t === tab);
+        nav.classList.toggle('text-slate-400', t !== tab);
+      });
+    }
+
+    async function loadState() {
+      try {
+        const res = await fetch(`${API_BASE}/api/state`);
+        const data = await res.json();
+        document.getElementById('status-badge').textContent = '● 引擎在线';
+        document.getElementById('cash-display').textContent = `¥ ${Number(data.cash || 0).toLocaleString('zh-CN', {minimumFractionDigits: 2})}`;
+        const posKeys = Object.keys(data.positions || {});
+        document.getElementById('pos-count').textContent = posKeys.length;
+        document.getElementById('hist-count').textContent = (data.trade_history || []).length;
+
+        // 渲染待确认买单
+        const pending = data.pending_buy_plan || [];
+        const pendingBox = document.getElementById('pending-box');
+        const btnConfirm = document.getElementById('btn-confirm');
+        if (pending.length > 0) {
+          pendingBox.classList.remove('hidden');
+          btnConfirm.classList.remove('hidden');
+          document.getElementById('pending-list').innerHTML = pending.map(p => `
+            <div class="bg-slate-900/80 p-2.5 rounded-lg flex justify-between items-center">
+              <div>
+                <div class="font-bold text-white">${p.name || ''} (${p.code})</div>
+                <div class="text-slate-400">建议 ${p.shares} 股 @ ¥${p.price}</div>
+              </div>
+              <span class="text-blue-400 font-semibold">${p.role || '仓位'}</span>
+            </div>
+          `).join('');
+        } else {
+          pendingBox.classList.add('hidden');
+          btnConfirm.classList.add('hidden');
+        }
+
+        // 渲染持仓卡片
+        const posContainer = document.getElementById('positions-list');
+        if (posKeys.length === 0) {
+          posContainer.innerHTML = '<div class="card p-4 text-center text-xs text-slate-400">当前空仓，暂无持仓监控记录</div>';
+        } else {
+          posContainer.innerHTML = posKeys.map(code => {
+            const p = data.positions[code];
+            return `
+              <div class="card p-4 space-y-2">
+                <div class="flex justify-between items-center">
+                  <div>
+                    <span class="font-bold text-white text-sm">${p.name || code}</span>
+                    <span class="text-xs text-slate-400 ml-1">${code}</span>
+                  </div>
+                  <button onclick="quickSell('${code}')" class="btn-danger text-white text-xs px-3 py-1 rounded-lg">记录卖出</button>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-xs bg-slate-900/70 p-2.5 rounded-xl">
+                  <div><span class="text-slate-400 block">持仓股数</span><strong class="text-slate-200">${p.shares}</strong></div>
+                  <div><span class="text-slate-400 block">成本均价</span><strong class="text-slate-200">¥${Number(p.cost_price || p.entry_price || 0).toFixed(2)}</strong></div>
+                  <div><span class="text-slate-400 block">硬止损线</span><strong class="text-rose-400">¥${Number(p.stop_loss || 0).toFixed(2)}</strong></div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        // 渲染历史记录
+        const hist = data.trade_history || [];
+        if (hist.length > 0) {
+          document.getElementById('history-list').innerHTML = hist.slice().reverse().map(h => `
+            <div class="bg-slate-900/70 p-2.5 rounded-lg flex justify-between">
+              <span>${h.name || h.code} (${h.code})</span>
+              <span class="${(h.pnl_pct || 0) >= 0 ? 'text-rose-400' : 'text-emerald-400'} font-bold">
+                ${((h.pnl_pct || 0) * 100).toFixed(2)}%
+              </span>
+            </div>
+          `).join('');
+        }
+      } catch (e) {
+        document.getElementById('status-badge').textContent = '● 离线';
+        document.getElementById('status-badge').className = 'px-2.5 py-1 text-xs rounded-full bg-rose-500/20 text-rose-400';
+      }
+    }
+
+    async function scanSignals() {
+      const btn = document.getElementById('btn-scan');
+      btn.disabled = true; btn.textContent = '⏳ 正在全市场海选扫描...';
+      try {
+        const res = await fetch(`${API_BASE}/api/signals`);
+        const data = await res.json();
+        document.getElementById('signal-report').textContent = data.report || '扫描完成';
+        await loadState();
+      } catch (e) {
+        document.getElementById('signal-report').textContent = '扫描失败：' + e.message;
+      } finally {
+        btn.disabled = false; btn.textContent = '📡 扫描今日买点';
+      }
+    }
+
+    async function checkPositions() {
+      const btn = document.getElementById('btn-check');
+      btn.disabled = true; btn.textContent = '⏳ 正在检测实时行情与止盈止损...';
+      try {
+        const res = await fetch(`${API_BASE}/api/positions/check`);
+        const data = await res.json();
+        document.getElementById('pos-report').textContent = data.report || '检测完成';
+        await loadState();
+      } catch (e) {
+        document.getElementById('pos-report').textContent = '检测失败：' + e.message;
+      } finally {
+        btn.disabled = false; btn.textContent = '🛡️ 立即检测持仓止盈/止损';
+      }
+    }
+
+    async function confirmBuy() {
+      if (!confirm('确认已按计划在券商成交并写入本地账本？')) return;
+      const res = await fetch(`${API_BASE}/api/confirm-buy`, { method: 'POST' });
+      const data = await res.json();
+      alert(data.reply);
+      await loadState();
+    }
+
+    async function quickSell(code) {
+      const price = prompt(`请输入 ${code} 的实际卖出成交价：`);
+      if (!price || isNaN(price)) return;
+      const res = await fetch(`${API_BASE}/api/sell`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, price: parseFloat(price) })
+      });
+      const data = await res.json();
+      alert(data.reply);
+      await loadState();
+    }
+
+    async function sendChat() {
+      const input = document.getElementById('chat-input');
+      if (!input.value.trim()) return;
+      const res = await fetch(`${API_BASE}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: input.value })
+      });
+      const data = await res.json();
+      document.getElementById('chat-reply').textContent = data.reply;
+      input.value = '';
+      await loadState();
+    }
+
+    function openCapitalModal() { document.getElementById('capital-modal').classList.replace('hidden', 'flex'); }
+    function closeCapitalModal() { document.getElementById('capital-modal').classList.replace('flex', 'hidden'); }
+    async function submitCapital() {
+      const val = parseFloat(document.getElementById('capital-input').value);
+      if (!val || val <= 0) return;
+      await fetch(`${API_BASE}/api/capital`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: val })
+      });
+      closeCapitalModal();
+      await loadState();
+    }
+
+    loadState();
+  </script>
+</body>
+</html>
