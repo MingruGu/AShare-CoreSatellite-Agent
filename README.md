@@ -1,6 +1,4 @@
 # AShare-CoreSatellite-Agent 🚀
-![回测](assets/%E5%9B%9E%E6%B5%8B.png)
-
 > **一个专为 A 股微观结构设计的“核心-卫星双引擎 + 动态交易龙头海选 + 半凯利风险平价”量化研究与个人实盘记忆智能体。**
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://www.python.org/)
